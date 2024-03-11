@@ -58,9 +58,9 @@ from gdsfactory.typings import (
     Route,
 )
 
+
 def get_restricted_area(
-    obstacle_list: list[Component],
-    margin: float = 0.0
+    obstacle_list: list[Component], margin: float = 0.0
 ) -> list[list[float]]:
     restricted_area = []
     for obstacle in obstacle_list:
@@ -68,6 +68,7 @@ def get_restricted_area(
         for polygon in obstacle.parent.polygons:
             restricted_area.append(polygon.points + origin)
     return restricted_area
+
 
 @validate_call
 def get_route(
@@ -118,7 +119,9 @@ def get_route(
         c.plot()
 
     """
-    obstacle_list = list(set(component.references) - {input_port.parent, output_port.parent})
+    obstacle_list = list(
+        set(component.references) - {input_port.parent, output_port.parent}
+    )
     restricted_area = get_restricted_area(obstacle_list)
     print(obstacle_list)
     print(restricted_area)
@@ -169,6 +172,7 @@ def get_route(
     return route_manhattan(
         input_port=input_port,
         output_port=output_port,
+        restricted_area=restricted_area,
         straight=straight,
         taper=taper,
         start_straight_length=start_straight_length,
