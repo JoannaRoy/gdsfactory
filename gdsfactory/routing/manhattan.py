@@ -247,6 +247,7 @@ def reverse_transform(
 def _generate_route_manhattan_points(
     input_port: Port,
     output_port: Port,
+    restricted_area: list[list[float]],
     bs1: float,
     bs2: float,
     start_straight_length: float = 0.01,
@@ -265,6 +266,8 @@ def _generate_route_manhattan_points(
         min_straight_length: in um.
 
     """
+    print("_generate_route_manhattan_points")
+    print(restricted_area)
     threshold = TOLERANCE
 
     # transform I/O to the case where output is at (0, 0) pointing east (180)
@@ -309,10 +312,12 @@ def _generate_route_manhattan_points(
             sigp = np.sign(p[1])
             if not sigp:
                 sigp = 1
+                print("21")
             if a % 360 == 0:
                 # same directions
                 if abs(p[1]) < threshold and p[0] <= threshold:
                     # Reach the output!
+                    print("good")
                     points += [_p_output]
                     break
                 elif (
@@ -320,6 +325,7 @@ def _generate_route_manhattan_points(
                     and abs(p[1]) - (bs1 + bs2 + min_straight_length) > -threshold
                 ):
                     # sufficient space for S-bend
+                    print("S-bend")
                     p = (-end_straight_length - bs2, p[1])
                     a = -sigp * 90
                 elif (
@@ -334,25 +340,47 @@ def _generate_route_manhattan_points(
                     < threshold
                 ):
                     # sufficient distance to move aside
-                    p = (p[0] + s + bs1, p[1])
+                    print("test_val")
+                    test_val = p[0] + s + bs1
+                    """for ra in restricted_area:
+                        if test_val > ra[0][0] and test_val < ra[2][0]:
+                            test_val = p[0] + s + bs1 - (test_val - ra[0][0])
+                            print('adjusted to ' + str(test_val))
+                            break"""
+                    # p = (p[0] + s + bs1, p[1])
+                    p = (test_val, p[1])
                     a = -sigp * 90
                 elif (
                     abs(p[1]) - (2 * bs1 + 2 * bs2 + 2 * min_straight_length)
                     > -threshold
                 ):
+                    print("3")
                     p = (p[0] + s + bs1, p[1])
                     a = -sigp * 90
                 else:
+                    print("4")
                     p = (p[0] + s + bs1, p[1])
                     a = sigp * 90
 
             elif a == 180:
                 # opposite directions
                 if abs(p[1]) - (bs1 + bs2 + min_straight_length) > -threshold:
+                    print("5")
                     # far enough: U-turn
-                    p = (min(p[0] - s, -end_straight_length) - bs2, p[1])
+                    test_val = min(p[0] - s, -end_straight_length) - bs2
+                    for ra in restricted_area:
+                        if (p_output[0] - test_val) > ra[0][0] and (
+                            p_output[0] - test_val
+                        ) < ra[2][0]:
+                            test_val = test_val + ((p_output[0] - test_val) - ra[0][0])
+                            print("adjusted to " + str(test_val))
+                            break
+                    # p = (min(p[0] - s, -end_straight_length) - bs2, p[1])
+                    print(str(test_val), str(p[1]))
+                    p = (test_val, p[1])
                 else:
                     # more complex turn
+                    print("6")
                     p = (
                         min(
                             p[0] - s - bs1,
@@ -365,10 +393,12 @@ def _generate_route_manhattan_points(
                 siga = -np.sign((a % 360) - 180)
                 if not siga:
                     siga = 1
+                    print("17")
 
                 if ((-p[1] * siga) - (s + bs2) > -threshold) and (
                     -p[0] - (end_straight_length + bs2)
                 ) > -threshold:
+                    print("7")
                     # simple case: one right angle to the end
                     p = (p[0], 0)
                     a = 0
@@ -378,6 +408,7 @@ def _generate_route_manhattan_points(
                     # go to the west, and then turn upward
                     # this will sometimes result in too sharp bends, but there is no
                     # avoiding this!
+                    print("8")
 
                     _y = min(
                         max(
@@ -389,6 +420,7 @@ def _generate_route_manhattan_points(
 
                     p = (p[0], sigp * _y)
                     if count == 1:  # take care of the start_straight case
+                        print("19")
                         p = (p[0], sigp * max(start_straight_length, _y))
 
                     a = 180
@@ -397,6 +429,7 @@ def _generate_route_manhattan_points(
                     > -threshold
                 ):
                     # go sufficiently up, and then east
+                    print("9")
                     p = (
                         p[0],
                         siga
@@ -405,6 +438,7 @@ def _generate_route_manhattan_points(
                     a = 0
 
                 elif -p[0] - (end_straight_length + bs2) > -threshold:
+                    print("10")
                     # make vertical S-bend to get sufficient room for movement
                     points += [(p[0], p[1] + siga * (bs2 + s))]
                     p = (
@@ -417,12 +451,24 @@ def _generate_route_manhattan_points(
                     # `a` remains the same
                 else:
                     # no viable solution for this case. May result in crossed straights
+                    print("11")
                     p = (p[0], p[1] + sigp * (s + bs1))
                     a = 180
             points += [p]
             s = min_straight_length + bs1
         points = np.stack([np.array(_p) for _p in points], axis=0)
+        print(points)
         points = reverse_transform(points, **transform_params)
+    print("after while loop")
+    print(points)
+    for pt in points:
+        for ra in restricted_area:
+            if pt[0] > ra[0][0] and pt[0] < ra[2][0]:
+                print(pt[0])
+                print("routed thru obstacle in x direction")
+            if pt[1] > ra[0][1] and pt[1] < ra[2][1]:
+                print(pt[1])
+                print("routed thru obstacle in y direction")
     return points
 
 
@@ -962,6 +1008,7 @@ def round_corners(
 def generate_manhattan_waypoints(
     input_port: Port,
     output_port: Port,
+    restricted_area: list[list[float]],
     start_straight_length: float | None = None,
     end_straight_length: float | None = None,
     min_straight_length: float | None = None,
@@ -1012,9 +1059,11 @@ def generate_manhattan_waypoints(
         min_straight_length = default_straight_length
 
     bsx = bsy = _get_bend_size(bend90)
+    print("here")
     return _generate_route_manhattan_points(
         input_port,
         output_port,
+        restricted_area,
         bsx,
         bsy,
         start_straight_length,
@@ -1033,6 +1082,7 @@ def _get_bend_size(bend90: Component):
 def route_manhattan(
     input_port: Port,
     output_port: Port,
+    restricted_area: list[list[float]],
     straight: ComponentSpec = straight_function,
     taper: ComponentSpec | None = None,
     start_straight_length: float | None = None,
@@ -1053,6 +1103,7 @@ def route_manhattan(
     Args:
         input_port: input.
         output_port: output.
+        restricted_area: list of lists of 4 coordinates to avoid routing thru
         straight: function.
         taper: add taper.
         start_straight_length: in um.
@@ -1065,6 +1116,7 @@ def route_manhattan(
         kwargs: cross_section settings.
 
     """
+    print(restricted_area)
     if isinstance(cross_section, tuple | list):
         x = [gf.get_cross_section(xsection[0], **kwargs) for xsection in cross_section]
         start_straight_length = start_straight_length or min(_x.min_length for _x in x)
@@ -1086,6 +1138,7 @@ def route_manhattan(
         points = generate_manhattan_waypoints(
             input_port,
             output_port,
+            restricted_area,
             start_straight_length=start_straight_length,
             end_straight_length=end_straight_length,
             min_straight_length=min_straight_length,
