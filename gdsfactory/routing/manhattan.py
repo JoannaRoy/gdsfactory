@@ -243,11 +243,46 @@ def reverse_transform(
     pts = pts - np.array(translation)
     return pts
 
+def _adjust_points(
+    transformed_ra: list[ndarray[float]],
+    test_val: float, x: float, y: float,
+    is_horizontal: bool, bs1: float, bs2: float
+) -> float:
+    for ra in transformed_ra:
+        x_small = min(ra[0][0], ra[2][0])
+        x_large = max(ra[0][0], ra[2][0])
+        y_small = min(ra[0][1], ra[2][1])
+        y_large = max(ra[0][1], ra[2][1])
+        
+        if is_horizontal is True:
+            if (y - y_small) * (y - y_large) < 0:
+                if (
+                    (test_val - x_small) * (test_val - x_large) < 0
+                    or
+                    (min(test_val, x) < x_small and max(test_val, x) > x_large)
+                    # (y - 2*bs1 - y_small) * (y - 2*bs1 - y_large) < 0
+                ):
+                    print("Adjusting X")
+                    test_val = x_small if abs(x - x_small) < abs(x - x_large) else x_large
+                    break
+        else:
+            if (x - x_small) * (x - x_large) < 0:
+                if (
+                    (test_val - y_small) * (test_val - y_large) < 0
+                    or
+                    (min(test_val, y) < y_small and max(test_val, y) > y_large)
+                    # (x - 2*bs1 - x_small) * (x - 2*bs1 - x_large) < 0
+                ):
+                    print("Adjusting Y")
+                    test_val = y_small if abs(y - y_small) < abs(y - y_large) else y_large
+                    break
+    return test_val
+
 
 def _generate_route_manhattan_points(
     input_port: Port,
     output_port: Port,
-    restricted_area: list[list[float]],
+    restricted_area: list[ndarray[float]],
     bs1: float,
     bs2: float,
     start_straight_length: float = 0.01,
@@ -302,6 +337,11 @@ def _generate_route_manhattan_points(
         count = 0
         points = [p]
 
+        transformed_ra = []
+        for ra in restricted_area:
+            transformed_ra.append(transform(ra, **transform_params))
+        print("transformed", transformed_ra)
+
         while True:
             count += 1
             if count > 40:
@@ -340,15 +380,7 @@ def _generate_route_manhattan_points(
                     < threshold
                 ):
                     # sufficient distance to move aside
-                    print("test_val")
-                    test_val = p[0] + s + bs1
-                    """for ra in restricted_area:
-                        if test_val > ra[0][0] and test_val < ra[2][0]:
-                            test_val = p[0] + s + bs1 - (test_val - ra[0][0])
-                            print('adjusted to ' + str(test_val))
-                            break"""
-                    # p = (p[0] + s + bs1, p[1])
-                    p = (test_val, p[1])
+                    p = (p[0] + s + bs1, p[1])
                     a = -sigp * 90
                 elif (
                     abs(p[1]) - (2 * bs1 + 2 * bs2 + 2 * min_straight_length)
@@ -367,17 +399,17 @@ def _generate_route_manhattan_points(
                 if abs(p[1]) - (bs1 + bs2 + min_straight_length) > -threshold:
                     print("5")
                     # far enough: U-turn
-                    test_val = min(p[0] - s, -end_straight_length) - bs2
-                    for ra in restricted_area:
-                        if (p_output[0] - test_val) > ra[0][0] and (
-                            p_output[0] - test_val
-                        ) < ra[2][0]:
-                            test_val = test_val + ((p_output[0] - test_val) - ra[0][0])
-                            print("adjusted to " + str(test_val))
-                            break
+                    test_x = _adjust_points(
+                        transformed_ra=transformed_ra,
+                        test_val=min(p[0] - s, -end_straight_length) - bs2,
+                        x=p[0],
+                        y=p[1],
+                        is_horizontal=True,
+                        bs1=bs1,
+                        bs2=bs2
+                    )
+                    p = (test_x, p[1])
                     # p = (min(p[0] - s, -end_straight_length) - bs2, p[1])
-                    print(str(test_val), str(p[1]))
-                    p = (test_val, p[1])
                 else:
                     # more complex turn
                     print("6")
@@ -400,8 +432,18 @@ def _generate_route_manhattan_points(
                 ) > -threshold:
                     print("7")
                     # simple case: one right angle to the end
-                    p = (p[0], 0)
-                    a = 0
+                    test_y = _adjust_points(
+                        transformed_ra=transformed_ra,
+                        test_val=0,
+                        x=p[0],
+                        y=p[1],
+                        is_horizontal=False,
+                        bs1=bs1,
+                        bs2=bs2
+                    )
+                    # p = (p[0], 0)
+                    a = 0 if test_y == 0 else 180
+                    p = (p[0], test_y)
                 elif (p[1] * siga) <= threshold and p[0] + (
                     end_straight_length + bs1
                 ) > -threshold:
@@ -418,12 +460,32 @@ def _generate_route_manhattan_points(
                         bs1 + bs2 + min_straight_length,
                     )
 
-                    p = (p[0], sigp * _y)
+                    test_y = _adjust_points(
+                        transformed_ra=transformed_ra,
+                        test_val=sigp * _y,
+                        x=p[0],
+                        y=p[1],
+                        is_horizontal=False,
+                        bs1=bs1,
+                        bs2=bs2
+                    )
+
+                    # p = (p[0], sigp * _y)
                     if count == 1:  # take care of the start_straight case
                         print("19")
-                        p = (p[0], sigp * max(start_straight_length, _y))
+                        # p = (p[0], sigp * max(start_straight_length, _y))
+                        test_y = _adjust_points(
+                            transformed_ra=transformed_ra,
+                            test_val=sigp * max(start_straight_length, _y),
+                            x=p[0],
+                            y=p[1],
+                            is_horizontal=False,
+                            bs1=bs1,
+                            bs2=bs2
+                        )
 
                     a = 180
+                    p = (p[0], test_y)
                 elif (
                     -p[0] - (end_straight_length + 2 * bs1 + bs2 + min_straight_length)
                     > -threshold
@@ -1008,7 +1070,7 @@ def round_corners(
 def generate_manhattan_waypoints(
     input_port: Port,
     output_port: Port,
-    restricted_area: list[list[float]],
+    restricted_area: list[ndarray[float]],
     start_straight_length: float | None = None,
     end_straight_length: float | None = None,
     min_straight_length: float | None = None,
@@ -1059,7 +1121,7 @@ def generate_manhattan_waypoints(
         min_straight_length = default_straight_length
 
     bsx = bsy = _get_bend_size(bend90)
-    print("here")
+    # print("here")
     return _generate_route_manhattan_points(
         input_port,
         output_port,
@@ -1082,7 +1144,7 @@ def _get_bend_size(bend90: Component):
 def route_manhattan(
     input_port: Port,
     output_port: Port,
-    restricted_area: list[list[float]],
+    restricted_area: list[ndarray[float]],
     straight: ComponentSpec = straight_function,
     taper: ComponentSpec | None = None,
     start_straight_length: float | None = None,
@@ -1116,7 +1178,7 @@ def route_manhattan(
         kwargs: cross_section settings.
 
     """
-    print(restricted_area)
+    # print(restricted_area)
     if isinstance(cross_section, tuple | list):
         x = [gf.get_cross_section(xsection[0], **kwargs) for xsection in cross_section]
         start_straight_length = start_straight_length or min(_x.min_length for _x in x)
