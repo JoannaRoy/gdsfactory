@@ -192,11 +192,15 @@ def get_route(
         bend=bend90,
         with_sbend=with_sbend,
         cross_section=cross_section,
+<<<<<<< HEAD
         restricted_area=restricted_area,
         auto_widen=auto_widen,
         auto_widen_minimum_length=auto_widen_minimum_length,
         width_wide=width_wide,
         taper_length=taper_length,
+=======
+        restricted_area=restricted_area
+>>>>>>> parent of 427c4d3d5... trying to merge
     )
 
 
