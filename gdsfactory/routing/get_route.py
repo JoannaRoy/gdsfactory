@@ -61,7 +61,7 @@ from gdsfactory.typings import (
 
 def get_restricted_area(
     obstacle_list: list[ComponentReference],
-    margin: float = 0.0
+    margin: float = 10.0
 ) -> list[ndarray[float]]:
     restricted_area = []
     obstacles_w_origin = [[np.array(obstacle.origin), obstacle] for obstacle in obstacle_list]
@@ -85,7 +85,7 @@ def get_route(
     input_port: Port,
     output_port: Port,
     component: Component,
-    component_margin: float = 0.0,
+    component_margin: float = 100.0,
     bend: ComponentSpec = bend_euler,
     with_sbend: bool = False,
     straight: ComponentSpec = straight_function,

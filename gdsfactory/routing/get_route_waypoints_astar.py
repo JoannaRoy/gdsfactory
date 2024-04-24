@@ -69,11 +69,11 @@ def is_turn(node):
     parent_coords = node.parent.coords
     grandparent_coords = node.parent.parent.coords
 
-    # travelling in the x-direction, then turning
+    # travelling in the y-direction, then turning
     if (parent_coords[0] == grandparent_coords[0]) and grandparent_coords[0] != node.coords[0]:
         return True
     
-    # travelling in the y-direction, then turning
+    # travelling in the x-direction, then turning
     elif (parent_coords[1] == grandparent_coords[1]) and grandparent_coords[1] != node.coords[1]:
         return True
 
@@ -285,20 +285,35 @@ def A_star(start_pos, end_pos, search_space, bs=0):
                     if search_space[x_n][y_n].parent and search_space[x_n][y_n].parent.parent and is_turn(search_space[x_n][y_n]):
                         # if turn is legal (if parent's distance till turn <= 1 node), add to queue
                         if not (search_space[x_n][y_n].parent.dist_till_legal_turn > 1):
-                            search_space[x_n][y_n].dist_till_legal_turn = bs/.01 + 10 # dist (in nodes) until next legal turn
-                            f = manhattan_heur(x, y, end_x, end_y) + search_space[x_n][y_n].cost + is_turn(search_space[x_n][y_n])*10
+                            search_space[x_n][y_n].dist_till_legal_turn = int(bs/.1) + 10 # dist (in nodes) until next legal turn
+                            f = manhattan_heur(x, y, end_x, end_y) + search_space[x_n][y_n].cost #+ is_turn(search_space[x_n][y_n])
                             q.insert(search_space[x_n][y_n], f)
+                            
+                            """print("TURNING")
+                            print("grandparents", search_space[x_n][y_n].parent.parent.coords)
+                            print("parents", search_space[x_n][y_n].parent.coords)
+                            print("node", search_space[x_n][y_n].coords)"""
+                        else:
+                            search_space[x_n][y_n].visited = True
                     
                     # its not a turn
                     else:
                         # update distance until legal turn
                         if search_space[x_n][y_n].parent.dist_till_legal_turn > 1:
-                            search_space[x_n][y_n].dist_till_legal_turn = search_space[x_n][y_n].parent.dist_till_legal_turn - 1
+                            search_space[x_n][y_n].dist_till_legal_turn = int(search_space[x_n][y_n].parent.dist_till_legal_turn) - 1
+                            """print("STRAIGHT")
+                            print("parents", search_space[x_n][y_n].parent.coords)
+                            print("node", search_space[x_n][y_n].coords)
+                            print("parent distance", search_space[x_n][y_n].parent.dist_till_legal_turn)
+                            print('dist left', search_space[x_n][y_n].dist_till_legal_turn)"""
+                            
                         else:
+                            """print("TURN ALLOWED")
+                            print("node", search_space[x_n][y_n].coords)"""
                             search_space[x_n][y_n].dist_till_legal_turn = 0
                         
                         # add to queue
-                        f = manhattan_heur(x, y, end_x, end_y) + search_space[x_n][y_n].cost
+                        f = manhattan_heur(x, y, end_x, end_y) + search_space[x_n][y_n].cost - 1 
                         q.insert(search_space[x_n][y_n], f)
 
 
@@ -308,7 +323,7 @@ def A_star(start_pos, end_pos, search_space, bs=0):
         return 0
 
     path = retrieve_path(search_space[start_x][start_y], search_space[end_x][end_y])
-    print('BEND DIST', bs/.01)
+    print('BEND DIST', bs/.1)
 
     return path
 
@@ -321,7 +336,7 @@ def generate_route_astar_points(
     min_straight_length: float = 0.01,
     restricted_area: list[ndarray[float]] = [],
 ) -> ndarray:
-    search_space_dims = (150,150)
+    search_space_dims = (200,200)
     search_space, restricted_areas = init_search_space_rectangles(search_space_dims, restricted_area)
 
     start_pos = np.array(input_port.center)
