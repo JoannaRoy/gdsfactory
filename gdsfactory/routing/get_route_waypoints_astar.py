@@ -140,11 +140,13 @@ def init_search_space_rectangles(dims, restricted_rectangles):
 
     if len(restricted_rectangles) > 0:
         bottom_left, top_left, top_right, bottom_right = restricted_rectangles[0]
+        print(bottom_left, top_left, top_right, bottom_right)
         top_left, bottom_left, top_right, bottom_right = dims_to_ints(top_left,10), dims_to_ints(bottom_left,10), dims_to_ints(top_right,10), dims_to_ints(bottom_right,10)
+        print(bottom_left, top_left, top_right, bottom_right)
         for i in range(width):
             row = []
             for j in range(height):
-                if not ((i>=bottom_left[0] and i<=bottom_right[0]) and (j>=bottom_left[1] and j<=top_left[1])):
+                if not ((i>bottom_left[0] and i<top_left[0]) and (j>top_right[1] and j<top_left[1])): #if not ((i>=bottom_left[0] and i<=bottom_right[0]) and (j>=bottom_left[1] and j<=top_left[1])):
                     node = Node(coords=(i,j))
                     row.append(node)
                 else:

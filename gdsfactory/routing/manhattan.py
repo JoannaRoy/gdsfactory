@@ -822,19 +822,20 @@ def round_corners(
         )
 
     # ensure bend connectivity
-    for i, point in enumerate(points[:-1]):
-        sx = np.sign(np.round(points[i + 1][0] - point[0], 3))
-        sy = np.sign(np.round(points[i + 1][1] - point[1], 3))
-        bsx = np.sign(np.round(bend_points[2 * i + 1][0] - bend_points[2 * i][0], 3))
-        bsy = np.sign(np.round(bend_points[2 * i + 1][1] - bend_points[2 * i][1], 3))
-        if bsx * sx == -1 or bsy * sy == -1:
-            print(f"No enough space for a route between {point} and {points[i+1]}")
-            return on_route_error(
-                points=points,
-                cross_section=None if multi_cross_section else x,
-                references=references,
-                with_sbend=with_sbend,
-            )
+    # for i, point in enumerate(points[:-1]):
+    #     sx = np.sign(np.round(points[i + 1][0] - point[0], 3))
+    #     sy = np.sign(np.round(points[i + 1][1] - point[1], 3))
+    #     bsx = np.sign(np.round(bend_points[2 * i + 1][0] - bend_points[2 * i][0], 3))
+    #     bsy = np.sign(np.round(bend_points[2 * i + 1][1] - bend_points[2 * i][1], 3))
+    #     if bsx * sx == -1 or bsy * sy == -1:
+    #         print(f"Not enough space for a route between {point} and {points[i+1]}")
+    #         print(bsx * sx, bsy * sy)
+    #         return on_route_error(
+    #             points=points,
+    #             cross_section=None if multi_cross_section else x,
+    #             references=references,
+    #             with_sbend=with_sbend,
+    #         )
 
     wg_refs = []
     for straight_origin, angle, length in straight_sections:
