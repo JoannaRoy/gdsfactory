@@ -123,12 +123,13 @@ def init_search_space(dims, restricted_areas):
     return search_space
 
 # initialize a pretend search space
-def init_search_space_rectangles(dims, restricted_rectangles):
+def init_search_space_rectangles(dims, restricted_rectangles, avoid_device_bodies):
     """
     similar to init_search_space, but its passed rectangles instead of individual points (so it fills in the rectangles with zeros)
     inputs:
     - dims: tuple(x_dim, y_dim)
     - restricted_rectangles: list of rectangles, each with the following format [top_left, bottom_left, top_right, bottom_right] -- each coordinate is a tuple of (x,y)
+    - avoid_device_bodies: bool = False. Tells us if we should route around the body of the source and destination devices.
 
     returns:
     - a list of nodes in areas that are legal to search, 0 in areas that are restricted/illegal to search.
@@ -146,7 +147,10 @@ def init_search_space_rectangles(dims, restricted_rectangles):
         for i in range(width):
             row = []
             for j in range(height):
-                if not ((i>bottom_left[0] and i<top_left[0]) and (j>top_right[1] and j<top_left[1])): #if not ((i>=bottom_left[0] and i<=bottom_right[0]) and (j>=bottom_left[1] and j<=top_left[1])):
+                if avoid_device_bodies and not ((i>bottom_left[0] and i<top_left[0]) and (j>top_right[1] and j<top_left[1])): #if not ((i>=bottom_left[0] and i<=bottom_right[0]) and (j>=bottom_left[1] and j<=top_left[1])):
+                    node = Node(coords=(i,j))
+                    row.append(node)
+                elif not avoid_device_bodies and not ((i>=bottom_left[0] and i<=bottom_right[0]) and (j>=bottom_left[1] and j<=top_left[1])):
                     node = Node(coords=(i,j))
                     row.append(node)
                 else:
@@ -158,7 +162,10 @@ def init_search_space_rectangles(dims, restricted_rectangles):
             top_left, bottom_left, top_right, bottom_right = dims_to_ints(top_left,10), dims_to_ints(bottom_left,10), dims_to_ints(top_right,10), dims_to_ints(bottom_right,10)
             for i in range(width):
                 for j in range(height):
-                    if ((i>bottom_left[0] and i<top_left[0]) and (j>top_right[1] and j<top_left[1])): #if ((i>=bottom_left[0] and i<=bottom_right[0]) and (j>=bottom_left[1] and j<=top_left[1])):
+                    if avoid_device_bodies and ((i>bottom_left[0] and i<top_left[0]) and (j>top_right[1] and j<top_left[1])): #if ((i>=bottom_left[0] and i<=bottom_right[0]) and (j>=bottom_left[1] and j<=top_left[1])):
+                        search_space[i][j] = 0
+                        restricted_areas.append((i,j))
+                    elif not avoid_device_bodies and ((i>=bottom_left[0] and i<=bottom_right[0]) and (j>=bottom_left[1] and j<=top_left[1])):
                         search_space[i][j] = 0
                         restricted_areas.append((i,j))
     else:
@@ -346,9 +353,10 @@ def generate_route_astar_points(
     end_straight_length: float = 0.01,
     min_straight_length: float = 0.01,
     restricted_area: list[ndarray[float]] = [],
+    avoid_device_bodies: bool = False,
 ) -> ndarray:
     search_space_dims = (200,200)
-    search_space, restricted_areas = init_search_space_rectangles(search_space_dims, restricted_area)
+    search_space, restricted_areas = init_search_space_rectangles(search_space_dims, restricted_area, avoid_device_bodies)
     print('generate_route_astar_points', restricted_areas)
 
     start_pos = np.array(input_port.center)

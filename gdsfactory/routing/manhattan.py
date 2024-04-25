@@ -37,6 +37,7 @@ TOLERANCE = 1 * nm
 DEG2RAD = np.pi / 180
 RAD2DEG = 1 / DEG2RAD
 default_straight_length = 0.01
+avoid_device_bodies = False
 
 O2D = {0: "East", 180: "West", 90: "North", 270: "South"}
 
@@ -822,20 +823,21 @@ def round_corners(
         )
 
     # ensure bend connectivity
-    # for i, point in enumerate(points[:-1]):
-    #     sx = np.sign(np.round(points[i + 1][0] - point[0], 3))
-    #     sy = np.sign(np.round(points[i + 1][1] - point[1], 3))
-    #     bsx = np.sign(np.round(bend_points[2 * i + 1][0] - bend_points[2 * i][0], 3))
-    #     bsy = np.sign(np.round(bend_points[2 * i + 1][1] - bend_points[2 * i][1], 3))
-    #     if bsx * sx == -1 or bsy * sy == -1:
-    #         print(f"Not enough space for a route between {point} and {points[i+1]}")
-    #         print(bsx * sx, bsy * sy)
-    #         return on_route_error(
-    #             points=points,
-    #             cross_section=None if multi_cross_section else x,
-    #             references=references,
-    #             with_sbend=with_sbend,
-    #         )
+    if not avoid_device_bodies:
+        for i, point in enumerate(points[:-1]):
+            sx = np.sign(np.round(points[i + 1][0] - point[0], 3))
+            sy = np.sign(np.round(points[i + 1][1] - point[1], 3))
+            bsx = np.sign(np.round(bend_points[2 * i + 1][0] - bend_points[2 * i][0], 3))
+            bsy = np.sign(np.round(bend_points[2 * i + 1][1] - bend_points[2 * i][1], 3))
+            if bsx * sx == -1 or bsy * sy == -1:
+                print(f"Not enough space for a route between {point} and {points[i+1]}")
+                print(bsx * sx, bsy * sy)
+                return on_route_error(
+                    points=points,
+                    cross_section=None if multi_cross_section else x,
+                    references=references,
+                    with_sbend=with_sbend,
+                )
 
     wg_refs = []
     for straight_origin, angle, length in straight_sections:
@@ -1026,7 +1028,8 @@ def generate_manhattan_waypoints(
         start_straight_length,
         end_straight_length,
         min_straight_length,
-        restricted_area
+        restricted_area,
+        avoid_device_bodies
     )
     return _generate_route_manhattan_points(
         input_port,
