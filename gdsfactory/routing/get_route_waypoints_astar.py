@@ -172,6 +172,15 @@ def init_search_space_rectangles(dims, restricted_rectangles):
 def manhattan_heur(curr_x, curr_y, end_x, end_y):
     return abs(curr_x-end_x)+abs(curr_y-end_y)
 
+# reduce number of turns heuristic
+def reduce_turns_heur(curr_x, curr_y, end_x, end_y):
+    tolerance = 0.1
+    cost = 0.5
+    if (curr_x == end_x and abs(end_y-curr_y) < tolerance) or (curr_y == end_y and abs(end_x-curr_x) < tolerance):
+        return 0
+    else:
+        return cost
+
 # get neighbours for A* - more efficient than DFS, no heuristic (this comes later)
 def get_neighbour_coords(curr_node_coords, search_space):
     """
@@ -286,7 +295,7 @@ def A_star(start_pos, end_pos, search_space, bs=0):
                         # if turn is legal (if parent's distance till turn <= 1 node), add to queue
                         if not (search_space[x_n][y_n].parent.dist_till_legal_turn > 1):
                             search_space[x_n][y_n].dist_till_legal_turn = int(bs/.1) + 10 # dist (in nodes) until next legal turn
-                            f = manhattan_heur(x, y, end_x, end_y) + search_space[x_n][y_n].cost #+ is_turn(search_space[x_n][y_n])
+                            f = manhattan_heur(x, y, end_x, end_y) + search_space[x_n][y_n].cost + reduce_turns_heur(x, y, end_x, end_y)*is_turn(search_space[x_n][y_n])
                             q.insert(search_space[x_n][y_n], f)
                             
                             """print("TURNING")
@@ -338,6 +347,7 @@ def generate_route_astar_points(
 ) -> ndarray:
     search_space_dims = (200,200)
     search_space, restricted_areas = init_search_space_rectangles(search_space_dims, restricted_area)
+    print('generate_route_astar_points', restricted_areas)
 
     start_pos = np.array(input_port.center)
     end_pos = np.array(output_port.center)

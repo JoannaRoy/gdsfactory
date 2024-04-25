@@ -78,6 +78,9 @@ def get_restricted_area(
         if len(obstacle.parent.references) != 0:
             for reference in obstacle.parent.references:
                 obstacles_w_origin.append([np.array(reference.origin) + origin, reference])
+    print('restricted area start')
+    print(restricted_area)
+    print('restricted area end')
     return restricted_area
 
 @validate_call
@@ -180,7 +183,6 @@ def get_route(
     return route_manhattan(
         input_port=input_port,
         output_port=output_port,
-        restricted_area=restricted_area,
         straight=straight,
         taper=taper,
         start_straight_length=start_straight_length,
