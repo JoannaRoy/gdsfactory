@@ -141,13 +141,14 @@ def init_search_space_rectangles(dims, restricted_rectangles, avoid_device_bodie
 
     if len(restricted_rectangles) > 0:
         bottom_left, top_left, top_right, bottom_right = restricted_rectangles[0]
-        print(bottom_left, top_left, top_right, bottom_right)
+        #print(bottom_left, top_left, top_right, bottom_right)
         top_left, bottom_left, top_right, bottom_right = dims_to_ints(top_left,10), dims_to_ints(bottom_left,10), dims_to_ints(top_right,10), dims_to_ints(bottom_right,10)
-        print(bottom_left, top_left, top_right, bottom_right)
+        #print(bottom_left, top_left, top_right, bottom_right)
         for i in range(width):
             row = []
             for j in range(height):
                 if avoid_device_bodies and not ((i>bottom_left[0] and i<top_left[0]) and (j>top_right[1] and j<top_left[1])): #if not ((i>=bottom_left[0] and i<=bottom_right[0]) and (j>=bottom_left[1] and j<=top_left[1])):
+                    #this comparisons is different from elif below because the names don't seem to match the actual coordinates as tested via print statements
                     node = Node(coords=(i,j))
                     row.append(node)
                 elif not avoid_device_bodies and not ((i>=bottom_left[0] and i<=bottom_right[0]) and (j>=bottom_left[1] and j<=top_left[1])):
@@ -163,6 +164,7 @@ def init_search_space_rectangles(dims, restricted_rectangles, avoid_device_bodie
             for i in range(width):
                 for j in range(height):
                     if avoid_device_bodies and ((i>bottom_left[0] and i<top_left[0]) and (j>top_right[1] and j<top_left[1])): #if ((i>=bottom_left[0] and i<=bottom_right[0]) and (j>=bottom_left[1] and j<=top_left[1])):
+                        #this comparisons is different from elif below because the names don't seem to match the actual coordinates as tested via print statements
                         search_space[i][j] = 0
                         restricted_areas.append((i,j))
                     elif not avoid_device_bodies and ((i>=bottom_left[0] and i<=bottom_right[0]) and (j>=bottom_left[1] and j<=top_left[1])):
@@ -341,7 +343,7 @@ def A_star(start_pos, end_pos, search_space, bs=0):
         return 0
 
     path = retrieve_path(search_space[start_x][start_y], search_space[end_x][end_y])
-    print('BEND DIST', bs/.1)
+    #print('BEND DIST', bs/.1)
 
     return path
 
@@ -357,7 +359,7 @@ def generate_route_astar_points(
 ) -> ndarray:
     search_space_dims = (200,200)
     search_space, restricted_areas = init_search_space_rectangles(search_space_dims, restricted_area, avoid_device_bodies)
-    print('generate_route_astar_points', restricted_areas)
+    #print('generate_route_astar_points', restricted_areas)
 
     start_pos = np.array(input_port.center)
     end_pos = np.array(output_port.center)

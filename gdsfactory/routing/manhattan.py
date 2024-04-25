@@ -37,7 +37,7 @@ TOLERANCE = 1 * nm
 DEG2RAD = np.pi / 180
 RAD2DEG = 1 / DEG2RAD
 default_straight_length = 0.01
-avoid_device_bodies = False
+#avoid_device_bodies = False
 
 O2D = {0: "East", 180: "West", 90: "North", 270: "South"}
 
@@ -616,6 +616,7 @@ def round_corners(
     on_route_error: Callable = get_route_error,
     with_point_markers: bool = False,
     with_sbend: bool = False,
+    avoid_device_bodies: bool = False,
     **kwargs,
 ) -> Route:
     """Returns Route.
@@ -974,6 +975,7 @@ def generate_manhattan_waypoints(
     bend: ComponentSpec = bend_euler,
     cross_section: None | CrossSectionSpec | MultiCrossSectionAngleSpec = strip,
     restricted_area: list[ndarray[float]] = [],
+    avoid_device_bodies: bool = False,
     **kwargs,
 ) -> ndarray:
     """Return waypoints for a Manhattan route between two ports.
@@ -1063,6 +1065,7 @@ def route_manhattan(
     restricted_area: list[ndarray[float]] = [],
     with_point_markers: bool = False,
     on_route_error: Callable = get_route_error,
+    avoid_device_bodies: bool = False,
     **kwargs,
 ) -> Route:
     """Generates the Manhattan waypoints for a route.
@@ -1082,6 +1085,7 @@ def route_manhattan(
         with_sbend: add sbend in case there are routing errors.
         cross_section: spec.
         with_point_markers: add point markers in the route.
+        avoid_device_bodies: avoid routing thru bodies of source and desintation devices.
         kwargs: cross_section settings.
 
     """
@@ -1111,7 +1115,8 @@ def route_manhattan(
             min_straight_length=min_straight_length,
             bend=bend,
             cross_section=x,
-            restricted_area=restricted_area
+            restricted_area=restricted_area,
+            avoid_device_bodies=avoid_device_bodies
         )
         return round_corners(
             points=points,
@@ -1122,6 +1127,7 @@ def route_manhattan(
             with_point_markers=with_point_markers,
             with_sbend=with_sbend,
             on_route_error=on_route_error,
+            avoid_device_bodies=avoid_device_bodies
         )
 
     except RouteError:

@@ -78,9 +78,9 @@ def get_restricted_area(
         if len(obstacle.parent.references) != 0:
             for reference in obstacle.parent.references:
                 obstacles_w_origin.append([np.array(reference.origin) + origin, reference])
-    print('restricted area start')
-    print(restricted_area)
-    print('restricted area end')
+    # print('restricted area start')
+    # print(restricted_area)
+    # print('restricted area end')
     return restricted_area
 
 @validate_call
@@ -97,6 +97,7 @@ def get_route(
     end_straight_length: float | None = None,
     min_straight_length: float | None = None,
     cross_section: None | CrossSectionSpec | MultiCrossSectionAngleSpec = "xs_sc",
+    avoid_device_bodies: bool = False,
     **kwargs,
 ) -> Route:
     """Returns a Manhattan Route between 2 ports.
@@ -116,6 +117,7 @@ def get_route(
         end_straight_length: length of end straight.
         min_straight_length: min length of straight for any intermediate segment.
         cross_section: spec.
+        avoid_device_bodies: avoid routing thru bodies of source and desintation devices.
         kwargs: cross_section settings.
 
 
@@ -191,7 +193,8 @@ def get_route(
         bend=bend90,
         with_sbend=with_sbend,
         cross_section=cross_section,
-        restricted_area=restricted_area
+        restricted_area=restricted_area,
+        avoid_device_bodies=avoid_device_bodies
     )
 
 
