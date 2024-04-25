@@ -39,9 +39,10 @@ from functools import partial
 
 import numpy as np
 from pydantic import validate_call
+from numpy import ndarray
 
 import gdsfactory as gf
-from gdsfactory.component import Component
+from gdsfactory.component import Component, ComponentReference
 from gdsfactory.components.bend_euler import bend_euler
 from gdsfactory.components.straight import straight as straight_function
 from gdsfactory.components.taper import taper as taper_function
@@ -58,23 +59,33 @@ from gdsfactory.typings import (
     Route,
 )
 
-
 def get_restricted_area(
-    obstacle_list: list[Component], margin: float = 0.0
-) -> list[list[float]]:
+    obstacle_list: list[ComponentReference],
+    margin: float = 10.0
+) -> list[ndarray[float]]:
     restricted_area = []
-    for obstacle in obstacle_list:
-        origin = np.array(obstacle.origin)
-        for polygon in obstacle.parent.polygons:
-            restricted_area.append(polygon.points + origin)
-    return restricted_area
+    obstacles_w_origin = [[np.array(obstacle.origin), obstacle] for obstacle in obstacle_list]
 
+    while len(obstacles_w_origin) > 0:
+        origin, obstacle = obstacles_w_origin.pop(0)
+        if len(obstacle.parent.polygons) != 0:
+            for polygon in obstacle.parent.polygons:
+                points = polygon.points
+                if margin > 0:
+                    points[points > 0] += margin
+                    points[points < 0] -= margin
+                restricted_area.append(points + origin)
+        if len(obstacle.parent.references) != 0:
+            for reference in obstacle.parent.references:
+                obstacles_w_origin.append([np.array(reference.origin) + origin, reference])
+    return restricted_area
 
 @validate_call
 def get_route(
     input_port: Port,
     output_port: Port,
     component: Component,
+    component_margin: float = 100.0,
     bend: ComponentSpec = bend_euler,
     with_sbend: bool = False,
     straight: ComponentSpec = straight_function,
@@ -119,12 +130,9 @@ def get_route(
         c.plot()
 
     """
-    obstacle_list = list(
-        set(component.references) - {input_port.parent, output_port.parent}
-    )
-    restricted_area = get_restricted_area(obstacle_list)
-    print(obstacle_list)
-    print(restricted_area)
+    # obstacle_list = list(set(component.references) - {input_port.parent, output_port.parent})
+    obstacle_list = list(set(component.references))
+    restricted_area = get_restricted_area(obstacle_list, component_margin)
 
     if isinstance(cross_section, list | tuple):
         xs_list = []
@@ -181,6 +189,7 @@ def get_route(
         bend=bend90,
         with_sbend=with_sbend,
         cross_section=cross_section,
+        restricted_area=restricted_area
     )
 
 

@@ -30,6 +30,8 @@ from gdsfactory.typings import (
     Route,
 )
 
+from gdsfactory.routing.get_route_waypoints_astar import generate_route_astar_points
+
 nm = 1e-3
 TOLERANCE = 1 * nm
 DEG2RAD = np.pi / 180
@@ -459,9 +461,8 @@ def _generate_route_manhattan_points(
         points = np.stack([np.array(_p) for _p in points], axis=0)
         print(points)
         points = reverse_transform(points, **transform_params)
-    print("after while loop")
-    print(points)
-    for pt in points:
+    print("Manhattan Points", points)
+    '''for pt in points:
         for ra in restricted_area:
             if pt[0] > ra[0][0] and pt[0] < ra[2][0]:
                 print(pt[0])
@@ -469,6 +470,7 @@ def _generate_route_manhattan_points(
             if pt[1] > ra[0][1] and pt[1] < ra[2][1]:
                 print(pt[1])
                 print("routed thru obstacle in y direction")
+    '''
     return points
 
 
@@ -1014,6 +1016,7 @@ def generate_manhattan_waypoints(
     min_straight_length: float | None = None,
     bend: ComponentSpec = bend_euler,
     cross_section: None | CrossSectionSpec | MultiCrossSectionAngleSpec = strip,
+    restricted_area: list[ndarray[float]] = [],
     **kwargs,
 ) -> ndarray:
     """Return waypoints for a Manhattan route between two ports.
@@ -1059,7 +1062,17 @@ def generate_manhattan_waypoints(
         min_straight_length = default_straight_length
 
     bsx = bsy = _get_bend_size(bend90)
-    print("here")
+    bs = _get_bend_size(bend90)
+
+    return generate_route_astar_points(
+        input_port,
+        output_port,
+        bs,
+        start_straight_length,
+        end_straight_length,
+        min_straight_length,
+        restricted_area
+    )
     return _generate_route_manhattan_points(
         input_port,
         output_port,
@@ -1091,6 +1104,7 @@ def route_manhattan(
     bend: ComponentSpec = bend_euler,
     with_sbend: bool = True,
     cross_section: None | CrossSectionSpec | MultiCrossSectionAngleSpec = strip,
+    restricted_area: list[ndarray[float]] = [],
     with_point_markers: bool = False,
     on_route_error: Callable = get_route_error,
     **kwargs,
@@ -1144,6 +1158,7 @@ def route_manhattan(
             min_straight_length=min_straight_length,
             bend=bend,
             cross_section=x,
+            restricted_area=restricted_area
         )
         return round_corners(
             points=points,
